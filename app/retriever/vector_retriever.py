@@ -4,13 +4,18 @@ from sentence_transformers import CrossEncoder
 import re
 import pickle
 from collections import defaultdict
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # -----------------------
 # load rerankers
 # -----------------------
 
 reranker = CrossEncoder(
-    "BAAI/bge-reranker-v2-m3"
+    "BAAI/bge-reranker-v2-m3",
+    token=os.getenv("HF_TOKEN")
 )
 
 # -----------------------
@@ -23,7 +28,7 @@ db = FAISS.load_local("indexes/vector_index", embeddings, allow_dangerous_deseri
 retriever = db.as_retriever(
     search_type = "similarity",
     search_kwargs = {
-        "k": 20
+        "k": 30
     }
 )
 
@@ -63,7 +68,7 @@ def bm25_search(query: str):
     return bm25.get_top_n(
         tokenized_query,
         docs,
-        n=20
+        n=30
     )
 
 # -----------------------
@@ -127,7 +132,7 @@ while True:
         bm25_results = bm25_search(file)
 
         hybrid_result = reciprocal_rank_fusion([faiss_result, bm25_results])
-        result = rerank(file, hybrid_result, top_k=10)
+        result = rerank(file, hybrid_result[:20], top_k=10)
 
         safe_file = re.sub(r'[<>:"/\\|? *]', "_", file)
 
