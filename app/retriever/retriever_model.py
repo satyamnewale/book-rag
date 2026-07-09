@@ -12,44 +12,54 @@ model = ChatOpenAI(
     max_tokens = 150
 )
 
-class Queries(BaseModel):
+class multiQueries(BaseModel):
     query: List[str] = Field(description="5 different diverse retrieval queries.")
 
-structured_model = model.with_structured_output(Queries)
+structured_model_multiQuery = model.with_structured_output(multiQueries)
 
-prompt = ChatPromptTemplate.from_template(
-    """You are helping RAG system improve document retrieval.
+prompt_multi_query = ChatPromptTemplate.from_template(
+    """You generate retrieval queries for a RAG system.
 
-    Given a user's question, generate 5 different diverse retrieval queries that maximize recall.
+    Given a question, generate 5 diverse search queries that maximize recall.
 
     Rules:
-
-    - Each query should explore a different aspect of the original question rather than being a simple paraphrase.
-    - Focus on retrieving complementary evidence from different parts of the document.
-    - Consider different retrieval perspectives such as:
-        + definitions or identification
-        + chronology or sequence of events
-        + causes or effects
-        + actions or behaviors
-        + relationships or dependencies
-        + locations or contexts
-        + descriptions or attributes
-        + evidence or supporting details
-        + summaries of relevant information
-
-    - Use only perspectives that naturally fit user's question.
-    - Use terminology likely to appear in document.
-    - Do not force categories that are not applicable.
-    - If the question asks for a complete explanation, ensure some queries target partial pieces that together reconstruct the full answer.
-    - Keep each query concise and self-contained.
-    - Avoid producing near-duplicate paraphrases.
-    - questions length should be less than 30 tokens.
-
-    Return only the queries as a numbered list.
+    - Each query must retrieve different evidence, not be a paraphrase.
+    - Cover different relevant aspects when applicable (definition, events, causes, effects, actions, relationships, locations, attributes, evidence, summary).
+    - Use terms likely to appear in the document.
+    - the queries should be relevant to main query but not too similar.
+    - Keep each query under 30 tokens.
 
     Question:
-    {question}"""
+    {question}
+    """
 )
 
 
-chain = prompt | structured_model 
+multi_query_chain = prompt_multi_query | structured_model_multiQuery
+
+# -----------------------
+# decomposition
+# -----------------------
+
+class decomposeQuery(BaseModel):
+    query: List[str] = Field(description="5 different diverse retrieval queries.")
+
+structured_model_decompose = model.with_structured_output(decomposeQuery)
+
+prompt_decompose = ChatPromptTemplate.from_template(
+    """
+    You are an expert at decomposing complex questions.
+    Break the user's question into the minimum number of independent subquestions needed to answer it completely. 
+    try to break it in minimum 3 and maximum 5 subquestions.
+
+    Rules:
+    - Each subquestion should retrieve different evidence. 
+    - Preserve the original meaning.  
+    - Avoid redundant subquestions.
+    - Keep each sub-query under 30 tokens.
+
+    Question: {question}
+    """
+)
+
+decompose_chain = prompt_decompose | structured_model_decompose

@@ -1,8 +1,9 @@
 import re
-from app.retriever.multi_model_retriever import multiQuery
+from app.retriever.approch_module import retriever
 
 # naming
 strategy = "(similarity + bm25) -> rrf -> reranker"
+retriever = retriever()
 
 # -----------------------
 # Main
@@ -16,7 +17,7 @@ while True:
     else:
         safe_file = re.sub(r'[<>:"/\\|? *]', "_", file)
 
-        result = multiQuery(file)
+        result = retriever.invoke(file)
 
         with open(f"./output/{safe_file}.txt", "a", encoding="utf-8") as f:
             f.write("\n")
