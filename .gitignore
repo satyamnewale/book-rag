@@ -76,6 +76,7 @@ faiss_index/
 # Output Files
 # ==========================
 output/
+predicted/
 results/
 
 # ==========================
