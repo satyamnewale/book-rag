@@ -3,18 +3,22 @@ from app.retriever.hybrid import hybridRetriever
 from app.retriever.deduplicate import deduplicate
 from app.retriever.reranker import rerank
 
-hybid_search = hybridRetriever()
 
-def decomposition(query):
+hybrid_search = hybridRetriever()
+
+async def decomposition(query):
     queries = chain.invoke({"question": query})
     queries = queries.query
 
     all_docs = []
-
-    all_docs.extend(hybid_search.invoke(query))
+    doc = hybrid_search.invoke(query)
+    doc = rerank(query, doc, 30)
+    all_docs.extend(doc)
 
     for query in queries:    
-        all_docs.extend(hybid_search.invoke(query))
+        docs = hybrid_search.invoke(query)
+        docs = rerank(query, docs, 30)
+        all_docs.extend(docs)
 
     unique_docs = deduplicate(all_docs)
 
